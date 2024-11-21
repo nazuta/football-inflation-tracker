@@ -1,87 +1,116 @@
 import React, { useState } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend } from 'recharts';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { TrendingUp } from 'lucide-react';
 
-const data = [
-  { year: "2013/14", value: 1.00, percentage: 0 },
-  { year: "2014/15", value: 1.17, percentage: 17 },
-  { year: "2015/16", value: 1.31, percentage: 31 },
-  { year: "2016/17", value: 1.67, percentage: 67 },
-  { year: "2017/18", value: 1.99, percentage: 99 },
-  { year: "2018/19", value: 1.94, percentage: 94 },
-  { year: "2019/20", value: 2.18, percentage: 118 },
-  { year: "2020/21", value: 2.61, percentage: 161 },
-  { year: "2021/22", value: 1.98, percentage: 98 },
-  { year: "2022/23", value: 2.16, percentage: 116 },
-  { year: "2023/24", value: 2.16, percentage: 116 }
-];
+const TransferInflationDashboard = () => {
+  const [originalAmount, setOriginalAmount] = useState('');
+  const [originalYear, setOriginalYear] = useState('2013');
+  const [targetYear, setTargetYear] = useState('2023');
 
-const TransferInflationCalculator = () => {
-  const [amount, setAmount] = useState('50000000');
-  const [year, setYear] = useState('2013/14');
+  const inflationData = [
+    { year: '2013/14', multiplier: 1.00, increase: '+0%' },
+    { year: '2014/15', multiplier: 1.17, increase: '+17%' },
+    { year: '2015/16', multiplier: 1.31, increase: '+31%' },
+    { year: '2016/17', multiplier: 1.67, increase: '+67%' },
+    { year: '2017/18', multiplier: 1.99, increase: '+99%' },
+    { year: '2018/19', multiplier: 1.94, increase: '+94%' },
+    { year: '2019/20', multiplier: 2.18, increase: '+118%' },
+    { year: '2020/21', multiplier: 2.61, increase: '+161%' },
+    { year: '2021/22', multiplier: 1.98, increase: '+98%' },
+    { year: '2022/23', multiplier: 2.16, increase: '+116%' }
+  ];
 
-  const formatInputNumber = (value) => {
+  const formatAmount = (value) => {
+    // Remove non-digit characters
     const digits = value.replace(/\D/g, '');
-    return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    
+    // Format with spaces every 3 digits
+    const formatted = digits.replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    
+    return formatted;
   };
 
   const handleAmountChange = (e) => {
-    const rawValue = e.target.value.replace(/\s/g, '');
-    if (/^\d*$/.test(rawValue)) {
-      setAmount(rawValue);
-    }
+    const formatted = formatAmount(e.target.value);
+    setOriginalAmount(formatted);
   };
 
-  const calculateModernValue = () => {
-    const baseMultiplier = data.find(d => d.year === year)?.value || 1;
-    const currentMultiplier = data[data.length - 1].value;
-    const ratio = currentMultiplier / baseMultiplier;
-    return (parseFloat(amount) * ratio).toLocaleString('en-EU', {
-      style: 'currency',
-      currency: 'EUR',
-      maximumFractionDigits: 0,
-      groupingSeparator: ' '
-    });
-  };
+const calculateInflatedValue = () => {
+  if (!originalAmount) return '0';
+  const numericAmount = parseFloat(originalAmount.replace(/\s/g, ''));
+  if (isNaN(numericAmount)) return '0';
+  
+  const startIndex = inflationData.findIndex(d => d.year.startsWith(originalYear));
+  const endIndex = inflationData.findIndex(d => d.year.startsWith(targetYear));
+  if (startIndex === -1 || endIndex === -1) return '0';
+  
+  const multiplier = inflationData[endIndex].multiplier / inflationData[startIndex].multiplier;
+  const result = (numericAmount * multiplier / 1_000_000).toFixed(2);
+  return formatAmount(result);
+};
+
 
   return (
-    <div className="space-y-8 w-full max-w-4xl">
+    <div className="space-y-6 p-4">
       <Card>
         <CardHeader>
-          <CardTitle>Transfer Inflation Calculator</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <TrendingUp className="h-6 w-6" />
+            Football Transfer Inflation Calculator
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid gap-6">
-            <div className="grid gap-2">
-              <Label htmlFor="amount">Original Transfer Amount (€)</Label>
-              <Input
-                id="amount"
-                type="text"
-                value={formatInputNumber(amount)}
-                onChange={handleAmountChange}
-                className="w-full text-xl font-mono"
-                placeholder="50 000 000"
-              />
-              <p className="text-sm text-gray-500">Enter amount without currency symbol or decimals</p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Transfer Amount (€)</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">€</span>
+                  <Input
+                    type="text"
+                    placeholder="50 000 000"
+                    value={originalAmount}
+                    onChange={handleAmountChange}
+                    className="pl-8"
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Original Season</label>
+                  <select
+                    value={originalYear}
+                    onChange={(e) => setOriginalYear(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  >
+                    {inflationData.map(d => (
+                      <option key={d.year} value={d.year.split('/')[0]}>
+                        {d.year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-700">Target Season</label>
+                  <select
+                    value={targetYear}
+                    onChange={(e) => setTargetYear(e.target.value)}
+                    className="w-full p-2 border rounded"
+                  >
+                    {inflationData.map(d => (
+                      <option key={d.year} value={d.year.split('/')[0]}>
+                        {d.year}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
             </div>
-            <div className="grid gap-2">
-              <Label htmlFor="year">Transfer Year</Label>
-              <select 
-                id="year"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                className="w-full p-2 border rounded"
-              >
-                {data.map(d => (
-                  <option key={d.year} value={d.year}>{d.year}</option>
-                ))}
-              </select>
-            </div>
-            <div className="p-4 bg-slate-100 rounded-lg">
-              <p className="text-lg font-semibold">Modern Equivalent Value:</p>
-              <p className="text-2xl font-bold text-blue-600 font-mono">{calculateModernValue()}</p>
+            <div className="bg-gray-100 p-4 rounded-lg flex items-center justify-between">
+              <div className="text-sm">Inflated Value:</div>
+              <div className="text-2xl font-bold">€{calculateInflatedValue()}M</div>
             </div>
           </div>
         </CardContent>
@@ -92,50 +121,21 @@ const TransferInflationCalculator = () => {
           <CardTitle>Historical Inflation Trend</CardTitle>
         </CardHeader>
         <CardContent>
-          <LineChart width={700} height={300} data={data} margin={{ top: 5, right: 20, bottom: 5, left: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="year" />
-            <YAxis />
-            <Tooltip />
-            <Legend />
-            <Line type="monotone" dataKey="value" stroke="#8884d8" name="Multiplier" />
-            <Line type="monotone" dataKey="percentage" stroke="#82ca9d" name="% Increase" />
-          </LineChart>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Historical Data Table</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="p-4 text-left border-b">Season</th>
-                  <th className="p-4 text-right border-b">Multiplier</th>
-                  <th className="p-4 text-right border-b">Inflation %</th>
-                  <th className="p-4 text-right border-b">Example: €1M in this season equals</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.map((row) => (
-                  <tr key={row.year} className="hover:bg-gray-50">
-                    <td className="p-4 border-b font-medium">{row.year}</td>
-                    <td className="p-4 border-b text-right font-mono">{row.value.toFixed(2)}×</td>
-                    <td className="p-4 border-b text-right font-mono">+{row.percentage}%</td>
-                    <td className="p-4 border-b text-right font-mono">
-                      {(1000000 * (data[data.length - 1].value / row.value)).toLocaleString('en-EU', {
-                        style: 'currency',
-                        currency: 'EUR',
-                        maximumFractionDigits: 0
-                      })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="h-64">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={inflationData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="year" />
+                <YAxis />
+                <Tooltip />
+                <Line 
+                  type="monotone" 
+                  dataKey="multiplier" 
+                  stroke="#2563eb"
+                  strokeWidth={2} 
+                />
+              </LineChart>
+            </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
@@ -143,4 +143,4 @@ const TransferInflationCalculator = () => {
   );
 };
 
-export default TransferInflationCalculator;
+export default TransferInflationDashboard;
